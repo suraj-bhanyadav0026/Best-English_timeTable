@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily English Study Timetable</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#94a3b8; --accent:#60a5fa; --done:#16a34a;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#071028 0%, #071726 100%);color:#e6eef8;display:flex;align-items:flex-start;justify-content:center;padding:18px}
+    .wrap{width:100%;max-width:920px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,0.6);}
+
+    .meta{display:flex;gap:10px;align-items:center}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:inherit;font-weight:600;cursor:pointer}
+    .btn.ghost{background:transparent}
+    .btn.warn{border-color:rgba(255,90,66,0.12)}
+
+    #progressWrap{margin:12px 0}
+    .progress{height:12px;background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#3b82f6);width:0%}
+    .progressInfo{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px}
+
+    ul.timetable{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:10px}
+    li.task{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    li.task.active{outline:2px solid rgba(96,165,250,0.12);background:linear-gradient(180deg, rgba(96,165,250,0.02), transparent)}
+    li.task.done{opacity:0.85;border-color:rgba(16,185,129,0.08);}
+
+    .time{min-width:86px;font-weight:700;color:var(--accent);font-size:13px}
+    .info{flex:1}
+    .title{font-weight:700;margin-bottom:6px}
+    .desc{font-size:13px;color:var(--muted)}
+
+    .right{display:flex;align-items:center;gap:10px}
+    .checkbox{width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);font-size:18px}
+    input[type=checkbox]{width:26px;height:26px}
+
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+
+    footer{margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+
+    /* responsive */
+    @media (max-width:640px){
+      .time{min-width:74px;font-size:12px}
+      .checkbox{width:44px;height:44px}
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+    }
+
+    /* subtle animations */
+    .fade-in{animation:fadeIn .35s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    .nextBadge{background:linear-gradient(90deg,#2563eb,#60a5fa);padding:6px 10px;border-radius:999px;font-size:13px;color:white}
+
+    .completedAt{font-size:11px;color:rgba(255,255,255,0.6)}
+
+    .checkmark{display:inline-block;width:18px;height:18px;border-radius:4px;background:linear-gradient(180deg,#08334c,#0b7285);color:white;font-weight:700;display:flex;align-items:center;justify-content:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Daily English Study Timetable</h1>
+        <div class="sub">Follow tasks in order — tap to mark done. Progress stored locally for each day.</div>
+      </div>
+      <div class="meta">
+        <div class="sub" id="todayLabel"></div>
+        <button class="btn" id="resetBtn">Reset today</button>
+      </div>
+    </header>
+
+    <section class="card fade-in">
+      <div id="progressWrap">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="small" id="nextUp">Next: —</div>
+          <div class="small" id="countDone">0 / 0 done</div>
+        </div>
+        <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+        <div class="progressInfo"><div class="muted">Use this on your phone or tablet — tap the checkbox to finish a task.</div><div class="muted">Auto-advance: on</div></div>
+      </div>
+
+      <ul class="timetable" id="taskList"></ul>
+
+      <footer>
+        <div class="small">Tip: completed tasks show time. To go back, uncheck a completed item.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" id="downloadBtn">Download today's progress</button>
+          <button class="btn warn" id="clearStorageBtn">Clear all saved data</button>
+        </div>
+      </footer>
+    </section>
+
+    <section style="margin-top:12px" class="card fade-in">
+      <strong>Quick daily checklist</strong>
+      <div class="small muted" style="margin-top:8px">✔ 1 grammar rule • ✔ 10 vocabulary words • ✔ 10–15 translations • ✔ 1–2 pages reading • ✔ 15–20 min listening • ✔ 10–15 min speaking • ✔ 1 paragraph writing • ✔ Quick revision at night</div>
+    </section>
+
+    <div style="height:30px"></div>
+  </div>
+
+<script>
+// ====== Edit the tasks array below to change the timetable (times, titles, descriptions) ======
+const tasks = [
+  {time:'9:00 – 9:40', title:'Grammar (new topic)', desc:'Learn a new rule or topic'},
+  {time:'9:40 – 9:50', title:'Short Break', desc:'Short rest'},
+  {time:'9:50 – 10:30', title:'Translation Practice', desc:'Hindi ↔ English translations'},
+  {time:'10:30 – 10:40', title:'Short Break', desc:'Short rest'},
+  {time:'10:40 – 11:20', title:'Vocabulary', desc:'10 new words + examples'},
+  {time:'11:20 – 11:30', title:'Short Break', desc:'Short rest'},
+  {time:'11:30 – 12:10', title:'Reading Practice', desc:'Story / blog / news'},
+  {time:'12:10 – 12:20', title:'Short Break', desc:'Short rest'},
+  {time:'12:20 – 13:00', title:'Listening Practice', desc:'Video / podcast — repeat sentences'},
+  {time:'13:00 – 15:30', title:'Lunch & Rest', desc:'Lunch slowly • light walk • short nap'},
+  {time:'15:30 – 16:10', title:'Speaking Practice', desc:'Self-talk, record voice, practice dialogues'},
+  {time:'16:10 – 16:20', title:'Short Break', desc:'Short rest'},
+  {time:'16:20 – 17:00', title:'Writing Practice', desc:'Paragraph / essay / diary'},
+  {time:'17:00 – 17:10', title:'Short Break', desc:'Short rest'},
+  {time:'17:10 – 18:00', title:'Role Play / Conversation', desc:'With friend or language app'},
+  {time:'18:00 – 19:30', title:'Evening Refresh', desc:'Tea/snack • 30–40 min exercise • relax'},
+  {time:'19:30 – 20:00', title:'Grammar Practice', desc:'Extra exercises / worksheets'},
+  {time:'20:00 – 20:10', title:'Short Break', desc:'Short rest'},
+  {time:'20:10 – 20:40', title:'Translation Practice', desc:'Mixed Hindi ↔ English sentences'},
+  {time:'20:40 – 20:50', title:'Short Break', desc:'Short rest'},
+  {time:'20:50 – 21:30', title:'Free Reading', desc:'Novel / magazine / online article'},
+  {time:'21:30 – 22:30', title:'Dinner & Relax', desc:'Dinner and light relaxation (20–30 min English videos/news)'}
+];
+// ============================================================================================
+
+const todayKey = () => {
+  const d = new Date();
+  return 'timetable-' + d.toISOString().slice(0,10);
+}
+
+let state = { completed: [], doneAt: [], activeIndex: 0 };
+
+function loadState(){
+  const raw = localStorage.getItem(todayKey());
+  if(raw){
+    try{ state = JSON.parse(raw); }
+    catch(e){ initFresh(); }
+  } else initFresh();
+  // ensure arrays match tasks length
+  state.completed = state.completed || Array(tasks.length).fill(false);
+  state.doneAt = state.doneAt || Array(tasks.length).fill(null);
+  if(typeof state.activeIndex !== 'number') state.activeIndex = firstNotDoneIndex();
+}
+
+function initFresh(){
+  state = { completed: Array(tasks.length).fill(false), doneAt: Array(tasks.length).fill(null), activeIndex: 0 };
+}
+
+function saveState(){ localStorage.setItem(todayKey(), JSON.stringify(state)); }
+
+function firstNotDoneIndex(){ return state.completed.findIndex(v=>!v) >=0 ? state.completed.findIndex(v=>!v) : tasks.length; }
+
+function formatTime(ts){ if(!ts) return ''; const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+function render(){
+  const list = document.getElementById('taskList'); list.innerHTML = '';
+  tasks.forEach((t,i)=>{
+    const li = document.createElement('li'); li.className = 'task';
+    if(state.completed[i]) li.classList.add('done');
+    if(i === state.activeIndex) li.classList.add('active');
+
+    const timeDiv = document.createElement('div'); timeDiv.className = 'time'; timeDiv.textContent = t.time;
+    const info = document.createElement('div'); info.className = 'info';
+    const title = document.createElement('div'); title.className = 'title'; title.textContent = t.title;
+    const desc = document.createElement('div'); desc.className = 'desc'; desc.textContent = t.desc;
+    info.appendChild(title); info.appendChild(desc);
+
+    const right = document.createElement('div'); right.className = 'right';
+    const cbWrap = document.createElement('label'); cbWrap.className = 'checkbox';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!state.completed[i];
+
+    // enable checkbox only if this is active or already completed (allows uncheck)
+    if(!(i === state.activeIndex || state.completed[i])) cb.disabled = true;
+
+    cb.addEventListener('change', ()=>{
+      if(cb.checked){
+        // mark done
+        state.completed[i] = true; state.doneAt[i] = Date.now();
+        // advance active index to next not-done
+        const next = state.completed.findIndex(v=>!v);
+        state.activeIndex = next >= 0 ? next : tasks.length; // tasks.length => none left
+      } else {
+        // uncheck => reopen this one as active
+        state.completed[i] = false; state.doneAt[i] = null; state.activeIndex = i;
+      }
+      saveState(); render(); scrollToActive();
+    });
+
+    cbWrap.appendChild(cb);
+    right.appendChild(cbWrap);
+
+    const small = document.createElement('div'); small.className = 'small';
+    small.innerHTML = state.doneAt[i] ? 'Done at <span class="completedAt">' + formatTime(state.doneAt[i]) + '</span>' : '&nbsp;';
+    right.appendChild(small);
+
+    li.appendChild(timeDiv); li.appendChild(info); li.appendChild(right);
+    list.appendChild(li);
+  });
+
+  updateProgress(); updateNextUp();
+}
+
+function updateProgress(){
+  const total = tasks.length; const done = state.completed.filter(Boolean).length;
+  const pct = Math.round((done/total)*100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('countDone').textContent = done + ' / ' + total + ' done';
+}
+
+function updateNextUp(){
+  const idx = state.completed.findIndex(v=>!v);
+  const label = document.getElementById('nextUp');
+  if(idx === -1){ label.textContent = 'All done — great job!'; }
+  else label.textContent = 'Next: ' + tasks[idx].time + ' • ' + tasks[idx].title;
+}
+
+function scrollToActive(){
+  const list = document.getElementById('taskList');
+  const nodes = list.querySelectorAll('li');
+  const idx = state.activeIndex;
+  if(idx >=0 && idx < nodes.length){
+    nodes[idx].scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+
+// ====== Buttons ======
+function setupButtons(){
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if(confirm('Reset progress for today?')){ initFresh(); saveState(); render(); }
+  });
+  document.getElementById('clearStorageBtn').addEventListener('click', ()=>{
+    if(confirm('Clear ALL saved data (this removes every saved day)?')){ localStorage.clear(); initFresh(); saveState(); render(); }
+  });
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    const payload = { date: new Date().toISOString().slice(0,10), tasks, state };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'timetable-progress-' + payload.date + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+}
+
+// show current date label and initialize
+function initUI(){
+  const label = document.getElementById('todayLabel');
+  const d = new Date(); label.textContent = d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+  loadState(); setupButtons(); render(); scrollToActive();
+}
+
+// Run
+initUI();
+
+</script>
+</body>
+</html>
